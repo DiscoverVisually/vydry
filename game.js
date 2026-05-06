@@ -46,17 +46,7 @@ document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 function startGame(otter){
   const [swim,dive,oxygen,attack,throwRate,capacity,agility,resist] = otter.stats;
   game = {
-    otter,
-    pearls: 0,
-    stones: { bojovy: 2, bonusovy: 1 },
-    hp: 3,
-    oxygen: 100,
-    score: 0,
-    timeAlive: 0,
-    maxDepth: 0,
-    shotsFired: 0,
-    hits: 0,
-    buffSpeedUntil: 0,
+    otter, pearls:0, stones:2, hp:3, oxygen:100,
     player:{x:220,y:250,vx:0,vy:0},
     projectiles:[],
     creatures:[],
@@ -74,56 +64,40 @@ function startGame(otter){
 }
 
 function spawnCollectible(){
-  const roll = Math.random();
-  const type = roll < 0.65 ? 'perla' : roll < 0.9 ? 'kamienok_bojovy' : 'kamienok_bonusovy';
-  game.collectibles.push({x:Math.random()*1080+60,y:Math.random()*560+60,type});
+  const good = Math.random() > 0.25;
+  game.collectibles.push({x:Math.random()*1080+60,y:Math.random()*560+60,type: good?'perla':'kamienok'});
 }
 function spawnCreature(isEnemy){
   const laneIdx = Math.floor(Math.random()*game.lanes.length);
   const dir = Math.random()<0.5 ? 1 : -1;
   game.creatures.push({
     x: dir>0?-40:1240, y: game.lanes[laneIdx], lane: laneIdx, dir,
-    speed: 70+Math.random()*70, enemy:isEnemy,
-    telegraph:0, targetLane: laneIdx, switchArrowPulse: 0
+    speed: 70+Math.random()*70, enemy:isEnemy, telegraph:0, targetLane: laneIdx
   });
 }
 
-function loop(){
+function loop(ts){
   if(!game || !game.alive) return;
-  update(1/60);
-  draw();
-  requestAnimationFrame(loop);
+  update(1/60); draw(); requestAnimationFrame(loop);
 }
-
 function update(dt){
   const p = game.player, c = game.cfg;
-  game.timeAlive += dt;
-  game.maxDepth = Math.max(game.maxDepth, p.y);
-
   const left = keys.has('a') || keys.has('arrowleft');
   const right = keys.has('d') || keys.has('arrowright');
   const up = keys.has('w') || keys.has('arrowup');
   const down = keys.has('s') || keys.has('arrowdown');
-
-  const speedBuff = game.timeAlive < game.buffSpeedUntil ? 1.35 : 1;
-  p.vx = (right-left) * (120 + c.swim*18) * speedBuff;
-  p.vy = (down-up) * (100 + c.dive*17) * speedBuff;
+  p.vx = (right-left) * (120 + c.swim*18);
+  p.vy = (down-up) * (100 + c.dive*17);
   p.x = Math.max(20,Math.min(1180,p.x + p.vx*dt));
   p.y = Math.max(40,Math.min(640,p.y + p.vy*dt));
 
   game.oxygen -= (0.6 + (10-c.oxygen)*0.12) * dt;
   if(game.oxygen<=0) return endRun('Došiel kyslík. Vydra sa vynorila na hladinu.');
 
-  if(keys.has(' ') && game.cooldown<=0 && (game.stones.bojovy + game.stones.bonusovy > 0)){
+  if(keys.has(' ') && game.cooldown<=0 && game.stones>0){
     game.cooldown = Math.max(0.2, 0.8 - c.throwRate*0.06);
-    const useCombat = game.stones.bojovy > 0;
-    if(useCombat) game.stones.bojovy -= 1;
-    else game.stones.bonusovy -= 1;
-    game.projectiles.push({
-      x:p.x+16, y:p.y, vx:320+40*c.attack, life:2,
-      type: useCombat ? 'bojovy' : 'bonusovy'
-    });
-    game.shotsFired += 1;
+    game.stones -= 1;
+    game.projectiles.push({x:p.x+16,y:p.y,vx:320+40*c.attack,life:2});
   }
   game.cooldown -= dt;
 
@@ -133,12 +107,7 @@ function update(dt){
   for(const cr of game.creatures){
     if(cr.telegraph>0){
       cr.telegraph -= dt;
-      cr.switchArrowPulse += dt * 12;
-      cr.speed *= 0.994;
-      if(cr.telegraph<=0) {
-        cr.lane = cr.targetLane;
-        cr.speed = Math.max(70, cr.speed + 20);
-      }
+      if(cr.telegraph<=0) cr.lane = cr.targetLane;
     }
     cr.y += (game.lanes[cr.lane]-cr.y) * Math.min(1, dt*8);
     cr.x += cr.dir * cr.speed * dt;
@@ -147,16 +116,15 @@ function update(dt){
     }
     if(Math.random()<0.003 && cr.telegraph<=0){
       const t = Math.max(0,Math.min(game.lanes.length-1, cr.lane + (Math.random()<0.5?-1:1)));
-      if(t!==cr.lane){ cr.telegraph = 1.1; cr.targetLane = t; cr.switchArrowPulse = 0; }
+      if(t!==cr.lane){ cr.telegraph = 1.1; cr.targetLane = t; }
     }
   }
 
+  // collisions
   game.collectibles = game.collectibles.filter(it=>{
     const d = Math.hypot(it.x-p.x, it.y-p.y);
     if(d<28){
-      if(it.type==='perla') game.pearls += 1;
-      else if(it.type==='kamienok_bojovy') game.stones.bojovy += 1;
-      else game.stones.bonusovy += 1;
+      if(it.type==='perla') game.pearls += 1; else game.stones += 1;
       spawnCollectible();
       return false;
     }
@@ -178,19 +146,13 @@ function update(dt){
       if(Math.hypot(cr.x-pr.x, cr.y-pr.y)<26 && cr.enemy){
         cr.x = cr.dir>0? -60:1260;
         pr.life = 0;
-        game.hits += 1;
-        if(pr.type === 'bojovy') game.pearls += 3;
-        else {
-          game.buffSpeedUntil = game.timeAlive + 5;
-          game.oxygen = Math.min(100, game.oxygen + 12);
-        }
+        game.pearls += 3;
       }
     }
   }
 
-  game.score = Math.floor(game.pearls * 10 + game.timeAlive * 2 + game.hits * 6 + game.maxDepth * 0.04);
   document.getElementById('hud-pearls').textContent = game.pearls;
-  document.getElementById('hud-stones').textContent = `${game.stones.bojovy}B/${game.stones.bonusovy}X`;
+  document.getElementById('hud-stones').textContent = game.stones;
   document.getElementById('hud-oxygen').textContent = Math.max(0,Math.floor(game.oxygen));
   document.getElementById('hud-hp').textContent = game.hp;
 }
@@ -200,39 +162,35 @@ function draw(){
   g.addColorStop(0,'#b7e8ff'); g.addColorStop(1,'#4da5d2');
   ctx.fillStyle = g; ctx.fillRect(0,0,1200,680);
 
+  // lanes subtly hidden
   ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   for(const y of game.lanes){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1200,y); ctx.stroke(); }
 
   for(const it of game.collectibles){
-    ctx.fillStyle = it.type==='perla' ? '#ffefcf' : it.type==='kamienok_bojovy' ? '#9fd0ff' : '#c8ffb1';
+    ctx.fillStyle = it.type==='perla' ? '#ffefcf' : '#9fd0ff';
     ctx.beginPath(); ctx.arc(it.x,it.y,9,0,Math.PI*2); ctx.fill();
   }
 
   for(const cr of game.creatures){
     if(cr.telegraph>0){
-      const alpha = 0.4 + (Math.sin(cr.switchArrowPulse) + 1) * 0.3;
-      ctx.fillStyle = `rgba(255,220,80,${alpha})`;
+      ctx.fillStyle = 'rgba(255,255,100,0.9)';
       ctx.beginPath();
       const dy = game.lanes[cr.targetLane]-cr.y;
       ctx.moveTo(cr.x,cr.y);
       ctx.lineTo(cr.x-12,cr.y+Math.sign(dy)*18);
       ctx.lineTo(cr.x+12,cr.y+Math.sign(dy)*18);
       ctx.closePath(); ctx.fill();
-
-      ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-      ctx.beginPath();
-      ctx.arc(cr.x, cr.y, 20, 0, Math.PI * 2);
-      ctx.stroke();
     }
     ctx.fillStyle = cr.enemy? '#466f8b':'#ffd55f';
     ctx.beginPath(); ctx.ellipse(cr.x,cr.y,24,14,0,0,Math.PI*2); ctx.fill();
   }
 
   for(const pr of game.projectiles){
-    ctx.fillStyle = pr.type === 'bojovy' ? '#d7ebff' : '#d8ffd6';
+    ctx.fillStyle = '#d7ebff';
     ctx.beginPath(); ctx.arc(pr.x,pr.y,5,0,Math.PI*2); ctx.fill();
   }
 
+  // small otter
   const p = game.player;
   ctx.fillStyle = '#7a5b45'; ctx.beginPath(); ctx.ellipse(p.x,p.y,22,14,0,0,Math.PI*2); ctx.fill();
   ctx.fillStyle = '#f4dfbf'; ctx.beginPath(); ctx.arc(p.x+10,p.y-4,7,0,Math.PI*2); ctx.fill();
@@ -240,9 +198,8 @@ function draw(){
 
 function endRun(msg){
   game.alive = false;
-  const presnost = game.shotsFired > 0 ? Math.round((game.hits / game.shotsFired) * 100) : 0;
   document.getElementById('result-title').textContent = 'Kolo skončilo';
-  document.getElementById('result-text').innerHTML = `${msg}<br>Perly: <strong>${game.pearls}</strong> · Skóre: <strong>${game.score}</strong><br>Čas: ${game.timeAlive.toFixed(1)} s · Max hĺbka: ${Math.floor(game.maxDepth)} · Presnosť: ${presnost}%`;
+  document.getElementById('result-text').textContent = `${msg} Získané perly: ${game.pearls}`;
   showScreen('result-screen');
 }
 
