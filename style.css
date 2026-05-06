@@ -1,0 +1,59 @@
+:root {
+  --bg1: #dff3ff;
+  --bg2: #a7d9f8;
+  --ink: #1f445e;
+  --panel: #f7fbff;
+  --accent: #2f90d0;
+}
+body {
+  margin: 0;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: linear-gradient(var(--bg1), var(--bg2));
+}
+main { max-width: 1240px; margin: 0 auto; padding: 20px; }
+.screen { display: none; }
+.screen.active { display: block; }
+h1, h2 { margin-bottom: 8px; }
+.subtitle { margin-top: 0; }
+button {
+  border: 2px solid #8bb9d6;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+.otter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.otter-card {
+  background: var(--panel);
+  border: 2px solid #a0cce7;
+  border-radius: 14px;
+  padding: 10px;
+}
+.otter-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px #7ec3ee55; }
+.otter-card h3 { margin: 0 0 6px 0; }
+.stats { font-size: 0.9rem; margin: 0; padding-left: 18px; }
+.actions { display: flex; gap: 10px; margin-top: 12px; }
+.hud {
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  gap: 12px;
+  margin-bottom: 10px;
+  background: #f7fbffc9;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+#game {
+  width: 100%;
+  max-width: 1200px;
+  border: 3px solid #8cbcd8;
+  border-radius: 16px;
+  background: #90d4f2;
+}
+.controls { margin-top: 8px; font-size: 0.95rem; }
