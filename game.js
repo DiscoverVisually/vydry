@@ -9,6 +9,16 @@ const OTTERS = [
   { id: 'zora', meno: 'Zora', pohlavie: 'Dievča', stats: [7,6,5,6,9,5,8,4] },
 ];
 const STAT_NAMES = ['Plávanie','Ponor','Kyslík','Sila','Rýchlosť hodu','Batoh','Obratnosť','Odolnosť'];
+const CREATURE_TYPES = {
+  dobry: [
+    { name: 'zlatá rybka', speedMin: 80, speedMax: 130, reward: 2, color: '#ffd55f' },
+    { name: 'delfínik', speedMin: 90, speedMax: 145, reward: 3, color: '#ffe28b' }
+  ],
+  zly: [
+    { name: 'medúza', speedMin: 70, speedMax: 120, damage: 1, color: '#7f96b8' },
+    { name: 'žraloček', speedMin: 95, speedMax: 160, damage: 1, color: '#466f8b' }
+  ]
+};
 
 const screens = ['start-screen','select-screen','game-screen','result-screen'].reduce((acc,id)=>{
   acc[id]=document.getElementById(id); return acc;
@@ -113,9 +123,12 @@ function spawnCollectible(){
 function spawnCreature(isEnemy){
   const laneIdx = Math.floor(Math.random()*game.lanes.length);
   const dir = Math.random()<0.5 ? 1 : -1;
+  const pool = isEnemy ? CREATURE_TYPES.zly : CREATURE_TYPES.dobry;
+  const type = pool[Math.floor(Math.random()*pool.length)];
   game.creatures.push({
     x: dir>0?-40:1240, y: game.lanes[laneIdx], lane: laneIdx, dir,
-    speed: 70+Math.random()*70, enemy:isEnemy,
+    speed: type.speedMin + Math.random()*(type.speedMax-type.speedMin),
+    enemy:isEnemy, type,
     telegraph:0, targetLane: laneIdx, switchArrowPulse: 0
   });
 }
@@ -199,11 +212,11 @@ function update(dt){
     const d = Math.hypot(cr.x-p.x, cr.y-p.y);
     if(d<34){
       if(cr.enemy){
-        game.hp -= 1;
+        game.hp -= (cr.type.damage || 1);
         p.x -= 30*cr.dir;
         if(game.hp<=0) return endRun('Došlo HP. Vydra sa zľakla a utiekla nad hladinu.');
       } else {
-        game.pearls += 2;
+        game.pearls += (cr.type.reward || 2);
       }
     }
     for(const pr of game.projectiles){
@@ -218,6 +231,10 @@ function update(dt){
         }
       }
     }
+  }
+
+  if(game.creatures.length < 10 && Math.random() < 0.01){
+    spawnCreature(Math.random() < 0.5 + Math.min(0.25, game.timeAlive/120));
   }
 
   game.score = Math.floor(game.pearls * 10 + game.timeAlive * 2 + game.hits * 6 + game.maxDepth * 0.04);
@@ -256,7 +273,7 @@ function draw(){
       ctx.arc(cr.x, cr.y, 20, 0, Math.PI * 2);
       ctx.stroke();
     }
-    ctx.fillStyle = cr.enemy? '#466f8b':'#ffd55f';
+    ctx.fillStyle = cr.type?.color || (cr.enemy? '#466f8b':'#ffd55f');
     ctx.beginPath(); ctx.ellipse(cr.x,cr.y,24,14,0,0,Math.PI*2); ctx.fill();
   }
 
