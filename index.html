@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Svet vydier</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <audio id="menu-music" loop preload="auto">
+      <source src="assets/audio/hobbit.mp3" type="audio/mpeg" />
+    </audio>
+
+    <section id="start-screen" class="screen active">
+      <h1>Svet vydier</h1>
+      <p class="subtitle">Ponor sa do hĺbky, zbieraj perly a preži!</p>
+      <button id="btn-start">Hrať</button>
+      <div class="meta-panel">
+        <p><strong>Trvalé perly:</strong> <span id="meta-pearls">0</span></p>
+        <p><strong>Bonus kyslíka:</strong> +<span id="meta-oxygen-level">0</span>%</p>
+        <button id="btn-upgrade-oxygen">Vylepšiť kyslík (cena: <span id="meta-oxygen-cost">20</span>)</button>
+      </div>
+    </section>
+
+    <section id="select-screen" class="screen">
+      <h2>Výber vydry</h2>
+      <p>Vyber si jednu z 8 vydier. Každá má iné schopnosti.</p>
+      <div id="otter-grid" class="otter-grid"></div>
+      <div class="actions">
+        <button id="btn-back">Späť</button>
+        <button id="btn-confirm" disabled>Potvrdiť výber</button>
+      </div>
+    </section>
+
+    <section id="game-screen" class="screen">
+      <div class="hud">
+        <div><strong>Vydra:</strong> <span id="hud-otter">-</span></div>
+        <div><strong>Perly:</strong> <span id="hud-pearls">0</span></div>
+        <div><strong>Kamienky:</strong> <span id="hud-stones">0B/0X</span></div>
+        <div><strong>Kyslík:</strong> <span id="hud-oxygen">100</span>%</div>
+        <div><strong>HP:</strong> <span id="hud-hp">3</span>/3</div>
+      </div>
+      <canvas id="game" width="1200" height="680"></canvas>
+      <p class="controls">Ovládanie: WASD / šípky · Medzerník = hod (B = bojový, X = bonusový)</p>
+    </section>
+
+    <section id="result-screen" class="screen">
+      <h2 id="result-title">Kolo skončilo</h2>
+      <p id="result-text"></p>
+      <button id="btn-restart">Späť na začiatok</button>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
